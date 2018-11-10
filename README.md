@@ -4,17 +4,15 @@ A debug and log library for Qt.
 
 ### Features:
 * Simple.
-* A log library
-* Privided a TCP server can receive and display log.
+* A log library with Qt type(e.g. QPoint, QRect ...) support, especially QPixmap/QImage/QBitmap etc.
+* Privided a TCP server can receive and display log info and view image facilitating debug QPaint/QPixmap etc.
 ![screenshot1](https://github.com/byteatom/qlog/blob/master/screenshot/screenshot1.png)
-* Save log to local file
-* Qt type(e.g. QPoint ...) support.
-* QPixmap etc. can be displayed in the server UI facilitate debug QPaint etc.
+* Save log to local file.
 
 ### Usage:
 ``` cpp
 #include "QLog.h"
-qlog << "hello world" << QPoint{0, 0} << QPixmap{"path.jpg"} << qDbg;
+qDbg << "hello world" << QPoint{0, 0} << QPixmap{"path.jpg"};
 ```
 
 link the static library qlog.lib
