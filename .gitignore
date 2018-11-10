@@ -1,0 +1,10 @@
+/tmp/
+/bin/
+/lib/
+
+*.pdb
+*.exp
+*.ilk
+*.user*
+~$*
+*.autosave
