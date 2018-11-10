@@ -12,7 +12,8 @@ A debug and log library for Qt.
 ### Usage:
 ``` cpp
 #include "QLog.h"
-qDbg << "hello world" << QPoint{0, 0} << QPixmap{"path.jpg"};
+qDbg << "hello" << QPoint{0, 0} << "world";
+qInf << "some picture" << QPixmap{"path.jpg"};
 ```
 
 link the static library qlog.lib
