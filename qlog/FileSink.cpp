@@ -14,16 +14,16 @@
 #include "QLogDataPool.h"
 
 const char* const QLogLevelStr[] = {
-	"{NON}",
-	"{EMG}",
-	"{ALT}",
-	"{CRT}",
-	"{ERR}",
-	"{WRN}",
-	"{NTC}",
-	"{INF}",
-	"{DGB}",
-	"{ALL}"
+	"NON",
+	"EMG",
+	"ALT",
+	"CRT",
+	"ERR",
+	"WRN",
+	"NTC",
+	"INF",
+	"DGB",
+	"ALL"
 };
 
 FileSink::FileSink()
@@ -98,11 +98,10 @@ void FileSink::run()
 
 		if (!data) continue;
 
-		stream	<< QLogLevelStr[data->level]
-				<< timet2str(data->calendar).c_str()
+		stream	<< timet2str(data->calendar).c_str()
 				<< ":"
 				<< QString("%1").arg(data->milsec, 3, 10, QChar('0'))
-				<< "> "
+				<< " " << QLogLevelStr[data->level] << " "
 				<< data->text
 				<< "\r\n";
 

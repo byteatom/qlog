@@ -23,16 +23,16 @@ class QLOG_API QLog : public QTextStream
 {
 public:
 	enum Level{
-		ENone,
-		EEmergency,
-		EAlert,
-		ECritical,
-		EError,
-		EWarnning,
-		ENotice,
-		EInfomation,
-		EDebug,
-		EALL,
+		None,
+		Emergency,
+		Alert,
+		Critical,
+		Error,
+		Warnning,
+		Notice,
+		Infomation,
+		Debug,
+		ALL,
 	};
 
 	QLog(Level level);
@@ -58,11 +58,34 @@ private:
 	QLogData* data;
 };
 
-#define qEmerg QLog(QLog::EEmergency)
-#define qAlert QLog(QLog::EAlert)
-#define qCriti QLog(QLog::ECritical)
-#define qErr QLog(QLog::EError)
-#define qWarn QLog(QLog::EWarnning)
-#define qNotice QLog(QLog::ENotice)
-#define qInf QLog(QLog::EInfomation)
-#define qDbg QLog(QLog::EDebug)
+template<std::size_t Len>
+constexpr const char* staticStripDirImpl(const char(&path)[Len], std::size_t pos)
+{
+	return pos == 0
+			? path
+			: (path[pos] == '/' || path[pos] == '\\')
+			  ? path + pos + 1
+			  : staticStripDirImpl(path, --pos);
+}
+
+template<std::size_t Len>
+constexpr const char* staticStripDir(const char(&str)[Len])
+{
+	return staticStripDirImpl(str, Len - 1);
+}
+
+#define STRINGIFY(x) #x
+#define STRINGIZE(x) STRINGIFY(x)
+
+#define __FILE_LINE__ staticStripDir(__FILE__ ":" STRINGIZE(__LINE__) "> ")
+
+#define QLOG_CREATE(level) QLog(level)<<__FILE_LINE__
+
+#define qEmerg QLOG_CREATE(QLog::Emergency)
+#define qAlert QLOG_CREATE(QLog::Alert)
+#define qCriti QLOG_CREATE(QLog::Critical)
+#define qErr QLOG_CREATE(QLog::Error)
+#define qWarn QLOG_CREATE(QLog::Warnning)
+#define qNotice QLOG_CREATE(QLog::Notice)
+#define qInf QLOG_CREATE(QLog::Infomation)
+#define qDbg QLOG_CREATE(QLog::Debug)
