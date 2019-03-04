@@ -33,6 +33,7 @@ private:
 	void onOff(bool checked);
 	void accept();
 	void read();
+	void disconnect();
 	void addLog();
 	void clear();
 	void bottom();

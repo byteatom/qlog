@@ -54,6 +54,9 @@ void MainWnd::onOff(bool checked)
 		}
 	} else {
 		server.close();
+		QList<QTcpSocket*> clients = server.findChildren<QTcpSocket*>();
+		for (auto& client: clients)
+			client->deleteLater();
 	}
 	ui->onOff->setText(checked ? tr("Stop") : tr("Start"));
 }
