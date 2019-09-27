@@ -4,37 +4,33 @@
 #include <chrono>
 
 #include <QDataStream>
+#include <QTcpSocket>
 
 #include "QLogDataPool.h"
 
-NetSink::NetSink(const QString& ipaddr, quint16 port) :
-	addr{ipaddr},
-	port{port}
-{
-}
+NetSink NetSink::singleton;
 
-NetSink::~NetSink()
+void NetSink::add(QLogData *data)
 {
-	requestInterruption();
-	cond.wakeAll();
-	wait();
-	for (auto data: queue)
-		freeQLogData(data);
-}
-
-void NetSink::start()
-{
-	if (!QThread::isRunning())
-		QThread::start(QThread::LowPriority);
+	singleton.push(data);
 }
 
 void NetSink::push(QLogData *data)
 {
+	if (stoped)
+		return;
+
+	if (!started) {
+		started = true;
+		thread = std::thread{&NetSink::run, this};
+	}
+
 	mutex.lock();
 	if (queue.size() > 8192) {
-		freeQLogData(queue.dequeue());
+		QLogData* tmpData = queue.front();
+		queue.pop();
+		QLogDataPool::free(tmpData);
 	}
-	queue.enqueue(data);
 	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() % 1000;
 	if (end > data->milsec)
 		data->delta = end - data->milsec;
@@ -42,8 +38,9 @@ void NetSink::push(QLogData *data)
 		data->delta = 1000 - data->milsec + end;
 	else
 		data->delta = 0;
-	cond.wakeAll();
+	queue.push(data);
 	mutex.unlock();
+	cond.notify_all();
 }
 
 void NetSink::run()
@@ -51,22 +48,22 @@ void NetSink::run()
 	QByteArray bytes;
 	QDataStream stream{&bytes, QIODevice::WriteOnly};
 	QTcpSocket socket;
-	while (!isInterruptionRequested()) {
-		if (socket.state() != socket.ConnectedState) {
-			socket.connectToHost(addr, port);
-			if (!socket.waitForConnected(3000)) {
-				continue;
-			}
-		}
+	socket.connectToHost("127.0.0.1", 34567);
+	if (!socket.waitForConnected(3000)) {
+		stoped = true;
+		return;
+	}
 
-		mutex.lock();
+	while (true) {
+		std::unique_lock<std::mutex> lock(mutex);
 		if (queue.empty())
-			cond.wait(&mutex);
-		QLogData *data = nullptr;
-		if (!queue.empty())
-			data = queue.dequeue();
-		mutex.unlock();
-		if (!data)  continue;
+			cond.wait(lock, [this]{return !queue.empty() || exit;});
+		if (exit)
+			break;
+
+		QLogData *data = queue.front();
+		queue.pop();
+		lock.unlock();
 
 		bytes.clear();
 		stream.device()->seek(0);
@@ -83,9 +80,25 @@ void NetSink::run()
 		stream.device()->seek(0);
 		stream << data->size;
 
-		freeQLogData(data);
+		QLogDataPool::free(data);
 
 		socket.write(bytes);
 		socket.flush();
 	}
+}
+
+void NetSink::quit()
+{
+	singleton.stop();
+}
+
+void NetSink::stop()
+{
+	stoped = true;
+	mutex.lock();
+	exit = true;
+	mutex.unlock();
+	cond.notify_all();
+	if (thread.joinable())
+		thread.join();
 }

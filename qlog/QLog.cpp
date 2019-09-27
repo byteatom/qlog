@@ -4,23 +4,20 @@
 #include "FileSink.h"
 #include "NetSink.h"
 #include "QLogDataPool.h"
-#include "GlobalData.h"
 
 QLog::QLog(Level level)
 {
-	data = allocQLogData(level);
+	data = QLogDataPool::alloc(level);
 	setString(&data->text, QIODevice::WriteOnly);
 }
 
 QLog::~QLog()
 {
-	fileSink.start();
-	fileSink.push(data);
+	FileSink::add(data);
 
-	netSink.start();
-	QLogData* netData = allocQLogData();
+	QLogData* netData = QLogDataPool::alloc();
 	*netData = *data;
-	netSink.push(netData);
+	NetSink::add(netData);
 }
 
 QLog& QLog::operator<<(const char* string)
@@ -99,4 +96,9 @@ QLog& QLog::operator<<(const QImage &image)
 {
 	data->var = image;
 	return *this;
+}
+
+void QLog::quit() {
+	FileSink::quit();
+	NetSink::quit();
 }

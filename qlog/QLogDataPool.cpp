@@ -1,23 +1,23 @@
 #include "QLogDataPool.h"
 
-#include "GlobalData.h"
+QLogDataPool::Allocator QLogDataPool::allocator;
 
-QLogData* allocQLogData()
+QLogData* QLogDataPool::alloc()
 {
-	QLogData* data = dataAllocator.allocate(1);
+	QLogData* data = allocator.allocate(1);
 	new (data) QLogData();
 	return data;
 }
 
-QLogData* allocQLogData(int32_t level)
+QLogData* QLogDataPool::alloc(int32_t level)
 {
-	QLogData* data = dataAllocator.allocate(1);
+	QLogData* data = allocator.allocate(1);
 	new (data) QLogData(level);
 	return data;
 }
 
-void freeQLogData(QLogData* data)
+void QLogDataPool::free(QLogData* data)
 {
 	data->~QLogData();
-	dataAllocator.deallocate(data, 1);
+	allocator.deallocate(data, 1);
 }

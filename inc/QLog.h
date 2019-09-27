@@ -54,6 +54,8 @@ public:
 	QLog& operator<<(const QBitmap &bitmap);
 	QLog& operator<<(const QImage &image);
 
+	static void quit();
+
 private:
 	QLogData* data;
 };

@@ -30,7 +30,6 @@ DEFINES += QLOG_LIB
 SOURCES += \
 	NetSink.cpp \
 	FileSink.cpp \
-	GlobalData.cpp \
 	QLog.cpp \
 	QLogDataPool.cpp \
 	../pub/QLogData.cpp
@@ -38,7 +37,6 @@ SOURCES += \
 HEADERS += \
 	NetSink.h \
 	FileSink.h \
-	GlobalData.h \
 	QLogDataPool.h \
 	../inc/QLog.h \
 	../pub/QLogData.h

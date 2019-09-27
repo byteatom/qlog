@@ -26,32 +26,28 @@ const char* const QLogLevelStr[] = {
 	"ALL"
 };
 
-FileSink::FileSink()
-{
-}
+FileSink FileSink::singleton;
 
-FileSink::~FileSink()
+void FileSink::add(QLogData* data)
 {
-	mutex.lock();
-	exit = true;
-	mutex.unlock();
-	cond.notify_all();
-	if (thread.joinable()) thread.join();
-}
-
-void FileSink::start()
-{
-	if (!thread.joinable())
-		thread = std::thread{&FileSink::run, this};
+	singleton.push(data);
 }
 
 void FileSink::push(QLogData* data)
 {
+	if (stoped)
+		return;
+
+	if (!started) {
+		started = true;
+		thread = std::thread{&FileSink::run, this};
+	}
+
 	mutex.lock();
 	if (queue.size() > 8192) {
 		QLogData* tmpData = queue.front();
 		queue.pop();
-		freeQLogData(tmpData);
+		QLogDataPool::free(tmpData);
 	}
 	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() % 1000;
 	if (end > data->milsec)
@@ -80,23 +76,22 @@ void FileSink::run()
 		.append(QFileInfo(QCoreApplication::applicationFilePath()).baseName())
 		.append(QDateTime::currentDateTime().toString("-yyyyMMdd-HHmmss.log"));
 	QFile file{name};
-	if (!file.open(QIODevice::WriteOnly|QIODevice::Append)) return;
+	if (!file.open(QIODevice::WriteOnly|QIODevice::Append)) {
+		stoped = true;
+		return;
+	}
 	QTextStream stream{&file};
 
 	while (true) {
 		std::unique_lock<std::mutex> lock(mutex);
 		if (queue.empty())
-			cond.wait(lock);
-		QLogData *data = nullptr;
-		if (queue.empty() && exit)
+			cond.wait(lock, [this]{return !queue.empty() || exit;});
+		if (exit)
 			break;
-		else {
-			data = queue.front();
-			queue.pop();
-		}
-		lock.unlock();
 
-		if (!data) continue;
+		QLogData *data = queue.front();
+		queue.pop();
+		lock.unlock();
 
 		stream	<< timet2str(data->calendar).c_str()
 				<< ":"
@@ -107,6 +102,22 @@ void FileSink::run()
 
 		stream.flush();
 
-		freeQLogData(data);
+		QLogDataPool::free(data);
 	}
+}
+
+void FileSink::quit()
+{
+	singleton.stop();
+}
+
+void FileSink::stop()
+{
+	stoped = true;
+	mutex.lock();
+	exit = true;
+	mutex.unlock();
+	cond.notify_all();
+	if (thread.joinable())
+		thread.join();
 }

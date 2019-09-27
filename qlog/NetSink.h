@@ -1,30 +1,32 @@
 #pragma once
 
-#include <QThread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+
 #include <QString>
-#include <QTcpSocket>
-#include <QQueue>
-#include <QMutex>
-#include <QWaitCondition>
 
 struct QLogData;
 
-class NetSink : public QThread
+class NetSink
 {
 public:
-	NetSink(const QString& addr = "127.0.0.1", quint16 port = 34567);
-	virtual ~NetSink();
-
-	void start();
-	void push(QLogData *log);
-
-protected:
-	virtual void run() override;
+	static void add(QLogData* data);
+	static void quit();
 
 private:
-	QString addr;
-	quint16 port;
-	QQueue<QLogData *> queue;
-	QMutex mutex;
-	QWaitCondition cond;
+	void push(QLogData* data);
+	void run();
+	void stop();
+
+	std::queue<QLogData*> queue;
+	std::mutex mutex;
+	std::condition_variable cond;
+	std::thread thread;
+	bool started = false;
+	bool stoped = false;
+	bool exit = false;
+
+	static NetSink singleton;
 };
