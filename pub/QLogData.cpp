@@ -15,7 +15,8 @@ std::string timet2str(const std::time_t& time)
 #endif
   std::string str;
   str.resize(32);
-  strftime(const_cast<char*>(str.data()), 32, "%FT%T", &local);
+  size_t size = strftime(const_cast<char*>(str.data()), 32, "%FT%T", &local);
+  str.resize(size);
   return str;
 }
 
@@ -27,8 +28,9 @@ QLogData::QLogData()
 QLogData::QLogData(int32_t level)
 {
 	size = 0;
-	calendar = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	milsec = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() % 1000;
+	auto now = std::chrono::system_clock::now();
+	calendar = std::chrono::system_clock::to_time_t(now);
+	milsec = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() % 1000;
 	process = QCoreApplication::applicationPid();
 	thread = (uint64_t)QThread::currentThreadId();
 	this->level = level;
