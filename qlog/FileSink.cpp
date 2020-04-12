@@ -49,7 +49,7 @@ void FileSink::push(QLogData* data)
 		queue.pop();
 		QLogDataPool::free(tmpData);
 	}
-	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() % 1000;
+	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
 	if (end > data->milsec)
 		data->delta = end - data->milsec;
 	else if (end < data->milsec)

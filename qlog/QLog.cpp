@@ -13,6 +13,8 @@ QLog::QLog(Level level)
 
 QLog::~QLog()
 {
+	setString(nullptr);
+
 	FileSink::add(data);
 
 	QLogData* netData = QLogDataPool::alloc();
