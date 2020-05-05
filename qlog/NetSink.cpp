@@ -1,21 +1,18 @@
 #include "NetSink.h"
 
-#include <cassert>
-#include <chrono>
-
 #include <QDataStream>
 #include <QTcpSocket>
 
-#include "QLogDataPool.h"
+#include "../pub/QLogData.h"
 
 NetSink NetSink::singleton;
 
-void NetSink::add(QLogData *data)
+void NetSink::add(const std::shared_ptr<QLogData>& data)
 {
 	singleton.push(data);
 }
 
-void NetSink::push(QLogData *data)
+void NetSink::push(const std::shared_ptr<QLogData>& data)
 {
 	if (stoped)
 		return;
@@ -27,17 +24,8 @@ void NetSink::push(QLogData *data)
 
 	mutex.lock();
 	if (queue.size() > 8192) {
-		QLogData* tmpData = queue.front();
 		queue.pop();
-		QLogDataPool::free(tmpData);
 	}
-	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
-	if (end > data->milsec)
-		data->delta = end - data->milsec;
-	else if (end < data->milsec)
-		data->delta = 1000 - data->milsec + end;
-	else
-		data->delta = 0;
 	queue.push(data);
 	mutex.unlock();
 	cond.notify_all();
@@ -61,7 +49,7 @@ void NetSink::run()
 		if (exit)
 			break;
 
-		QLogData *data = queue.front();
+		auto data = queue.front();
 		queue.pop();
 		lock.unlock();
 
@@ -79,8 +67,6 @@ void NetSink::run()
 		data->size = bytes.size() - sizeof(data->size);
 		stream.device()->seek(0);
 		stream << data->size;
-
-		QLogDataPool::free(data);
 
 		socket.write(bytes);
 		socket.flush();

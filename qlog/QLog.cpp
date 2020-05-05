@@ -3,11 +3,10 @@
 #include "../pub/QLogData.h"
 #include "FileSink.h"
 #include "NetSink.h"
-#include "QLogDataPool.h"
 
 QLog::QLog(Level level)
 {
-	data = QLogDataPool::alloc(level);
+	data = std::make_shared<QLogData>(level);
 	setString(&data->text, QIODevice::WriteOnly);
 }
 
@@ -15,11 +14,17 @@ QLog::~QLog()
 {
 	setString(nullptr);
 
+	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
+	if (end > data->milsec)
+		data->delta = end - data->milsec;
+	else if (end < data->milsec)
+		data->delta = 1000 - data->milsec + end;
+	else
+		data->delta = 0;
+
 	FileSink::add(data);
 
-	QLogData* netData = QLogDataPool::alloc();
-	*netData = *data;
-	NetSink::add(netData);
+	NetSink::add(data);
 }
 
 QLog& QLog::operator<<(const char* string)

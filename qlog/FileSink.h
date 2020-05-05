@@ -10,15 +10,15 @@ struct QLogData;
 class FileSink
 {
 public:
-	static void add(QLogData* data);
+	static void add(const std::shared_ptr<QLogData>& data);
 	static void quit();
 
 private:
-	void push(QLogData* data);
+	void push(const std::shared_ptr<QLogData>& data);
 	void run();
 	void stop();
 
-	std::queue<QLogData*> queue;
+	std::queue<std::shared_ptr<QLogData>> queue;
 	std::mutex mutex;
 	std::condition_variable cond;
 	std::thread thread;

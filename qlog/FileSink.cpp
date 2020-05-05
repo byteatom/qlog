@@ -1,8 +1,5 @@
 #include "FileSink.h"
 
-#include <functional>
-#include <chrono>
-
 #include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
@@ -11,7 +8,7 @@
 #include <QTextStream>
 #include <QCoreApplication>
 
-#include "QLogDataPool.h"
+#include "../pub/QLogData.h"
 
 const char* const QLogLevelStr[] = {
 	"NON",
@@ -28,12 +25,12 @@ const char* const QLogLevelStr[] = {
 
 FileSink FileSink::singleton;
 
-void FileSink::add(QLogData* data)
+void FileSink::add(const std::shared_ptr<QLogData>& data)
 {
 	singleton.push(data);
 }
 
-void FileSink::push(QLogData* data)
+void FileSink::push(const std::shared_ptr<QLogData>& data)
 {
 	if (stoped)
 		return;
@@ -45,17 +42,9 @@ void FileSink::push(QLogData* data)
 
 	mutex.lock();
 	if (queue.size() > 8192) {
-		QLogData* tmpData = queue.front();
 		queue.pop();
-		QLogDataPool::free(tmpData);
 	}
-	qint64 end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 1000;
-	if (end > data->milsec)
-		data->delta = end - data->milsec;
-	else if (end < data->milsec)
-		data->delta = 1000 - data->milsec + end;
-	else
-		data->delta = 0;
+
 	queue.push(data);
 	mutex.unlock();
 	cond.notify_all();
@@ -89,7 +78,7 @@ void FileSink::run()
 		if (exit)
 			break;
 
-		QLogData *data = queue.front();
+		auto data = queue.front();
 		queue.pop();
 		lock.unlock();
 
@@ -101,8 +90,6 @@ void FileSink::run()
 				<< "\r\n";
 
 		stream.flush();
-
-		QLogDataPool::free(data);
 	}
 }
 

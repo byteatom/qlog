@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include <QTextStream>
 #include <QPoint>
@@ -57,7 +58,7 @@ public:
 	static void quit();
 
 private:
-	QLogData* data;
+	std::shared_ptr<QLogData> data;
 };
 
 template<std::size_t Len>

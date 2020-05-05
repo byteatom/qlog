@@ -1,6 +1,8 @@
 TARGET = qlog
 TEMPLATE = lib
 
+VERSION = 1.0.0.0
+
 CONFIG += c++14
 
 CONFIG += skip_target_version_ext
@@ -27,11 +29,30 @@ QT += network
 
 DEFINES += QLOG_LIB
 
+msvc {
+	#QMAKE_CXXFLAGS_EXCEPTIONS_ON = /EHa
+	#QMAKE_CXXFLAGS_STL_ON = /EHa
+
+	QMAKE_CXXFLAGS_WARN_ON -= -w34100
+	QMAKE_CFLAGS_WARN_ON -= -w34100
+
+	QMAKE_CFLAGS += -we4715 -wd4100 -wd4101 -wd4102 -wd4189
+	QMAKE_CXXFLAGS += -we4715 -wd4100 -wd4101 -wd4102 -wd4189
+
+	QMAKE_TARGET_PRODUCT = $${TARGET}
+	CONFIG(release, debug|release) {
+		#PDB
+		QMAKE_CXXFLAGS_RELEASE += /Zi /Oy-
+		PDB_DIR = $$PWD/../pdb/$$VERSION
+		mkpath($${PDB_DIR})
+		QMAKE_LFLAGS_RELEASE += /DEBUG /PDB:"$${PDB_DIR}/$${TARGET}.pdb"
+	}
+}
+
 SOURCES += \
 	NetSink.cpp \
 	FileSink.cpp \
 	QLog.cpp \
-	QLogDataPool.cpp \
 	../pub/QLogData.cpp
 
 HEADERS += \
